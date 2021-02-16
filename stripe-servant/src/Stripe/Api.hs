@@ -50,6 +50,7 @@ type PaymentMethodApi =
   StripeAuth :> QueryParam "customer" CustomerId :> QueryParam "type" T.Text :> Get '[JSON] (StripeList PaymentMethod)
     :<|> StripeAuth :> Capture ":payment_method_id" PaymentMethodId :> "attach" :> QueryParam "customer" CustomerId :> Post '[JSON] PaymentMethod
     :<|> StripeAuth :> ReqBody '[FormUrlEncoded] PaymentMethodCreate :> Post '[JSON] PaymentMethod
+    :<|> StripeAuth :> Capture ":payment_method_id" PaymentMethodId :> Get '[JSON] PaymentMethod
 
 type SubscriptionApi =
   StripeAuth :> ReqBody '[FormUrlEncoded] SubscriptionCreate :> Post '[JSON] Subscription

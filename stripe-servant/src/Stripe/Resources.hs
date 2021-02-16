@@ -13,6 +13,8 @@ module Stripe.Resources
   , InvoiceId(..), Invoice(..), InvoiceSettings(..)
     -- * Payment Method
   , PaymentMethodId(..), PaymentMethod(..), PaymentMethodCreate(..)
+  -- * Payment Intent
+  , PaymentIntent (..)
     -- * Card
   , Card(..)
     -- * Subscriptions

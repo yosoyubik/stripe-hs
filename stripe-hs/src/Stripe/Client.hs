@@ -20,9 +20,8 @@ module Stripe.Client
     -- * Invoices
   , listInvoices, retrieveInvoice
   , InvoiceId(..), Invoice(..), InvoiceSettings(..)
-    -- * Payment Methods
-  , listPaymentMethods, attachPaymentMethod, createPaymentMethod
     -- * Payment Method
+  , listPaymentMethods, attachPaymentMethod, createPaymentMethod, retrievePaymentMethod
   , PaymentMethodId(..), PaymentMethod(..), PaymentMethodCreate(..)
     -- * Card
   , Card(..)
@@ -111,6 +110,7 @@ EP(retrieveInvoice, InvoiceId, Invoice)
 EP2(listInvoices, Maybe CustomerId, Maybe T.Text, (StripeList Invoice))
 
 EP2(listPaymentMethods, Maybe CustomerId, Maybe T.Text, (StripeList PaymentMethod))
+EP(retrievePaymentMethod, PaymentMethodId, PaymentMethod)
 EP2(attachPaymentMethod, PaymentMethodId, Maybe CustomerId, PaymentMethod)
 EP(createPaymentMethod, PaymentMethodCreate, PaymentMethod)
 
@@ -127,7 +127,7 @@ EP(listEvents, Maybe EventId, (StripeList Event))
   :<|> (createPrice' :<|> retrievePrice' :<|> listPrices')
   :<|> (createSubscription' :<|> retrieveSubscription' :<|> listSubscriptions' :<|> updateSubscription')
   :<|> (retrieveInvoice' :<|> listInvoices')
-  :<|> (listPaymentMethods' :<|> attachPaymentMethod' :<|> createPaymentMethod')
+  :<|> (listPaymentMethods' :<|> attachPaymentMethod' :<|> createPaymentMethod' :<|> retrievePaymentMethod')
   :<|> (createCheckoutSession' :<|> retrieveCheckoutSession')
   :<|> (createCustomerPortal')
   :<|> (retrieveEvent' :<|> listEvents') 

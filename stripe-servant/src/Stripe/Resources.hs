@@ -190,6 +190,7 @@ data Invoice = Invoice
     iAmountDue :: Maybe Int,
     iAmountPaid :: Maybe Int,
     iStatus :: T.Text,
+    iMetadata :: Maybe (HM.HashMap T.Text T.Text),
     iPaymentIntent :: Maybe PaymentIntent
   }
   deriving (Show, Eq)

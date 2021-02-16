@@ -175,9 +175,13 @@ newtype InvoiceSettings = InvoiceSettings
   }
   deriving (Show, Eq)
 
+newtype PaymentIntentId = PaymentIntentId {piPaymentIntentId :: T.Text}
+  deriving (Show, Eq, ToJSON, FromJSON, ToHttpApiData)
 data PaymentIntent = PaymentIntent
-  { piPaymentMethod :: Maybe T.Text,
-    piStatus :: Maybe T.Text
+  { piId :: PaymentIntentId,
+    -- TODO: replace with Maybe (Either PaymentMethodId PaymentMethod)
+    piPaymentMethod :: Maybe PaymentMethodId,
+    piStatus :: T.Text
   }
   deriving (Show, Eq)
 
@@ -191,6 +195,7 @@ data Invoice = Invoice
     iAmountPaid :: Maybe Int,
     iStatus :: T.Text,
     iMetadata :: Maybe (HM.HashMap T.Text T.Text),
+    -- TODO: replace with Either PaymentIntentId PaymentIntent
     iPaymentIntent :: Maybe PaymentIntent
   }
   deriving (Show, Eq)

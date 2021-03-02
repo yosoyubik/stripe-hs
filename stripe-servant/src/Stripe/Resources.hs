@@ -14,7 +14,7 @@ module Stripe.Resources
     -- * Payment Method
   , PaymentMethodId(..), PaymentMethod(..)
     -- * Payment Intent
-  , PaymentIntent(..)
+  , PaymentIntent(..), PaymentIntentOrId(..)
     -- * Card
   , Card(..)
     -- * Subscriptions
@@ -32,6 +32,7 @@ where
 
 import Stripe.Util.Aeson
 
+import Control.Applicative
 import Data.Maybe
 import Data.Time
 import Data.Time.Clock.POSIX
@@ -187,6 +188,17 @@ data PaymentIntent = PaymentIntent
   }
   deriving (Show, Eq)
 
+data PaymentIntentOrId
+  = Id PaymentIntentId
+  | Intent PaymentIntent
+  deriving (Show, Eq, Generic)
+
+instance FromJSON PaymentIntentOrId where
+  parseJSON value = 
+    fmap Id (A.parseJSON value) <|> fmap Intent (A.parseJSON value)
+
+instance ToJSON PaymentIntentOrId
+
 data Invoice = Invoice
   { iId :: InvoiceId,
     iCollectionMethod :: T.Text,
@@ -197,7 +209,7 @@ data Invoice = Invoice
     iAmountPaid :: Maybe Int,
     iCurrency :: Maybe T.Text,
     iStatus :: T.Text,
-    iPaymentIntent :: Maybe (Either PaymentIntentId PaymentIntent)
+    iPaymentIntent :: Maybe PaymentIntentOrId
   }
   deriving (Show, Eq)
 

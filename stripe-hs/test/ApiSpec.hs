@@ -11,6 +11,7 @@ import qualified Data.Text as T
 import qualified Data.Vector as V
 
 import Stripe.Client
+import Stripe.Resources
 
 makeClient :: IO StripeClient
 makeClient =
@@ -178,17 +179,28 @@ apiWorldTests =
        do
          it "list and retrieve invoices" $ \(cli, sw) ->
             do
-              let customerId = cId (swCustomer sw)
-              invoices <- forceSuccess $ listInvoices cli (Just customerId) (Just "data.payment_intent")
-              iCustomer (V.head (slData invoices)) `shouldBe` customerId
+              let cmId' = cId (swCustomer sw)
+              -- customer <- T.pack <$> getEnv "STRIPE_CMID"
+              -- let cmId' = CustomerId customer
+              invoices <- forceSuccess $ listInvoices cli (Just cmId') (Just "data.payment_intent")
+              iCustomer (V.head (slData invoices)) `shouldBe` cmId'
               invoice <- forceSuccess $ retrieveInvoice cli $ iId (V.head (slData invoices))
               iId (V.head (slData invoices)) `shouldBe` iId invoice
               iPaymentIntent (V.head (slData invoices)) `shouldBe` Nothing
+              -- An invoice with an attempted payment needs to exist for this Customer
+              customer <- T.pack <$> getEnv "STRIPE_CMID"
+              let cmId' = CustomerId customer
+              invoices <- forceSuccess $ listInvoices cli (Just cmId') (Just "data.payment_intent")
+              let (Just pIntent) = iPaymentIntent (V.head (slData invoices))
+                  isIntent :: PaymentIntentOrId -> Bool
+                  isIntent Intent{} = True
+                  isIntent _        = False
+              pIntent `shouldSatisfy` isIntent
      describe "payment methods" $
        do
          it "list payment methods" $ \(cli, sw) ->
            do
-             -- An existing customer with a PaymentMehod attach needs to exist
+             -- An existing customer with a PaymentMehod attached needs to exist
              paymentMethod <- T.pack <$> getEnv "STRIPE_PMID"
              customer <- T.pack <$> getEnv "STRIPE_CMID"
              let cmId' = CustomerId customer

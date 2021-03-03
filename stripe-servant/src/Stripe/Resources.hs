@@ -12,9 +12,9 @@ module Stripe.Resources
     -- * Invoices
   , InvoiceId(..), Invoice(..), InvoiceSettings(..)
     -- * Payment Method
-  , PaymentMethodId(..), PaymentMethod(..), PaymentMethodCreate(..)
-  -- * Payment Intent
-  , PaymentIntent (..)
+  , PaymentMethodId(..), PaymentMethod(..)
+    -- * Payment Intent
+  , PaymentIntent(..), PaymentIntentOrId(..)
     -- * Card
   , Card(..)
     -- * Subscriptions
@@ -32,6 +32,7 @@ where
 
 import Stripe.Util.Aeson
 
+import Control.Applicative
 import Data.Maybe
 import Data.Time
 import Data.Time.Clock.POSIX
@@ -179,26 +180,37 @@ newtype InvoiceSettings = InvoiceSettings
 
 newtype PaymentIntentId = PaymentIntentId {piPaymentIntentId :: T.Text}
   deriving (Show, Eq, ToJSON, FromJSON, ToHttpApiData)
+
 data PaymentIntent = PaymentIntent
   { piId :: PaymentIntentId,
-    -- TODO: replace with Maybe (Either PaymentMethodId PaymentMethod)
     piPaymentMethod :: Maybe PaymentMethodId,
     piStatus :: T.Text
   }
   deriving (Show, Eq)
+
+data PaymentIntentOrId
+  = Id PaymentIntentId
+  | Intent PaymentIntent
+  deriving (Show, Eq, Generic)
+
+instance FromJSON PaymentIntentOrId where
+  parseJSON value =
+    fmap Id (A.parseJSON value) <|> fmap Intent (A.parseJSON value)
+
+instance ToJSON PaymentIntentOrId
 
 data Invoice = Invoice
   { iId :: InvoiceId,
     iCollectionMethod :: T.Text,
     iCustomer :: CustomerId,
     iHostedInvoiceURL :: Maybe T.Text,
-    iCreated :: Maybe Int,
+    iCreated :: Maybe TimeStamp,
     iAmountDue :: Maybe Int,
     iAmountPaid :: Maybe Int,
+    iCurrency :: Maybe T.Text,
     iStatus :: T.Text,
     iMetadata :: Maybe (HM.HashMap T.Text T.Text),
-    -- TODO: replace with Either PaymentIntentId PaymentIntent
-    iPaymentIntent :: Maybe PaymentIntent
+    iPaymentIntent :: Maybe PaymentIntentOrId
   }
   deriving (Show, Eq)
 
@@ -215,7 +227,7 @@ data BillingDetails = BillingDetails
 data Card = Card
   { cExpMonth :: Int
   , cExpYear :: Int
-  , cLast4 :: String
+  , cLast4 :: T.Text
   }
   deriving (Show, Eq)
 
@@ -227,14 +239,6 @@ data PaymentMethod = PaymentMethod
   }
   deriving (Show, Eq)
 
-data PaymentMethodCreate = PaymentMethodCreate
-  { pmcExpMonth :: Int
-  , pmcExpYear :: Int
-  , pmcCVC :: Int
-  , pmcNumber :: Int
-  , pmcType :: T.Text
-  }
-  deriving (Show, Eq, Generic)
 
 newtype ProductId
   = ProductId { unProductId :: T.Text }
@@ -262,7 +266,7 @@ data Subscription
   = Subscription
   { sId :: SubscriptionId
   , sCancelAtPeriodEnd :: Bool
-  , sCollectionMethod :: Maybe T.Text
+  , sCollectionMethod :: T.Text
   , sCurrentPeriodEnd :: TimeStamp
   , sCurrentPeriodStart :: TimeStamp
   , sCustomer :: CustomerId
@@ -414,16 +418,6 @@ instance ToForm PriceCreate where
        , ("transfer_lookup_key", [toUrlPiece $ pcTransferLookupKey pc])
        ] <> recurringPiece
 
-instance ToForm PaymentMethodCreate where
-  toForm pmc =
-    Form $
-      HM.fromList
-        [ ("type", [pmcType pmc])
-        , ("card[number]", [toUrlPiece $ pmcNumber pmc])
-        , ("card[exp_month]", [toUrlPiece $ pmcExpMonth pmc])
-        , ("card[exp_year]", [toUrlPiece $ pmcExpYear pmc])
-        , ("card[cvc]", [toUrlPiece $ pmcCVC pmc])
-        ]
 
 instance ToForm SubscriptionCreate where
   toForm sc =

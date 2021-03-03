@@ -3,6 +3,7 @@ module ApiSpec (apiSpec) where
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 import Test.Hspec
+import Data.Either
 import Data.Time
 import Data.Time.TimeSpan
 import System.Environment (getEnv)
@@ -10,6 +11,7 @@ import qualified Data.Text as T
 import qualified Data.Vector as V
 
 import Stripe.Client
+import Stripe.Resources
 
 makeClient :: IO StripeClient
 makeClient =
@@ -88,7 +90,7 @@ apiTests =
                cu `shouldBe` cr
           it "updates a customer" $ \cli ->
             do cr <- forceSuccess $ createCustomer cli (CustomerCreate Nothing (Just "mail@athiemann.net"))
-               let customerUpdate = 
+               let customerUpdate =
                     CustomerUpdate Nothing (Just "mail+2@athiemann.net") Nothing
                cu <- forceSuccess $ updateCustomer cli (cId cr) customerUpdate
                cEmail cu `shouldBe` Just "mail+2@athiemann.net"
@@ -118,7 +120,7 @@ apiWorldTests :: SpecWith ()
 apiWorldTests =
   beforeAll makeStripeWorld $
   do describe "subscriptions" $
-       do 
+       do
          it "allows creating a subscription" $ \(cli, sw) ->
             do trialEnd <- TimeStamp . addUTCTimeTS (hours 1) <$> getCurrentTime
                subscription <-
@@ -136,14 +138,14 @@ apiWorldTests =
                fmap siPrice items `shouldBe` pure (swPrice sw)
                fmap siQuantity items `shouldBe` pure (Just 1)
                fmap siSubscription items `shouldBe` pure (sId subscription)
-               sStatus subscription `shouldBe` "trialing"        
+               sStatus subscription `shouldBe` "trialing"
          it "updates a subscription" $ \(cli, sw) ->
            do let customerId = cId (swCustomer sw)
               subscriptions <- forceSuccess $ listSubscriptions cli (Just customerId)
               let subscriptionId = sId (V.head (slData subscriptions))
                   subscriptionUpdate = SubscriptionUpdate (Just "charge_automatically") Nothing
               res <- forceSuccess $ updateSubscription cli subscriptionId subscriptionUpdate
-              sCollectionMethod res `shouldBe` Just "charge_automatically"
+              sCollectionMethod res `shouldBe` "charge_automatically"
      describe "customer portal" $
        do it "allows creating a customer portal (needs setup in dashboard)" $ \(cli, sw) ->
             do portal <-
@@ -163,6 +165,7 @@ apiWorldTests =
                  , cscSuccessUrl = "https://athiemann.net/success"
                  , cscClientReferenceId = Just "cool"
                  , cscCustomer = Just (cId (swCustomer sw))
+                 , cscAllowPromotionCodes = Just True
                  , cscLineItems = [CheckoutSessionCreateLineItem (pId (swPrice sw)) 1]
                  }
                csClientReferenceId session `shouldBe` Just "cool"
@@ -177,39 +180,34 @@ apiWorldTests =
        do
          it "list and retrieve invoices" $ \(cli, sw) ->
             do
-              let customerId = cId (swCustomer sw)
-              invoices <- forceSuccess $ listInvoices cli (Just customerId) (Just "data.payment_intent")
-              iCustomer (V.head (slData invoices)) `shouldBe` customerId
-              iPaymentIntent (V.head (slData invoices)) `shouldBe` Nothing
+              let cmId' = cId (swCustomer sw)
+              -- customer <- T.pack <$> getEnv "STRIPE_CMID"
+              -- let cmId' = CustomerId customer
+              invoices <- forceSuccess $ listInvoices cli (Just cmId') (Just "data.payment_intent")
+              iCustomer (V.head (slData invoices)) `shouldBe` cmId'
               invoice <- forceSuccess $ retrieveInvoice cli $ iId (V.head (slData invoices))
               iId (V.head (slData invoices)) `shouldBe` iId invoice
+              iPaymentIntent (V.head (slData invoices)) `shouldBe` Nothing
+              -- An invoice with an attempted payment needs to exist for this Customer
+              customer <- T.pack <$> getEnv "STRIPE_CMID"
+              let cmId' = CustomerId customer
+              invoices <- forceSuccess $ listInvoices cli (Just cmId') (Just "data.payment_intent")
+              let (Just pIntent) = iPaymentIntent (V.head (slData invoices))
+                  isIntent :: PaymentIntentOrId -> Bool
+                  isIntent Intent{} = True
+                  isIntent _        = False
+              pIntent `shouldSatisfy` isIntent
      describe "payment methods" $
        do
-         it "attach payment method to customer" $ \(cli, sw) ->
-           do
-              let customerId = cId (swCustomer sw)
-              paymentMethod <- forceSuccess $ 
-                createPaymentMethod cli $
-                  PaymentMethodCreate
-                    { pmcExpMonth = 12
-                    , pmcExpYear = 2023
-                    , pmcCVC = 123
-                    , pmcNumber = 4242424242424242
-                    , pmcType = "card"
-                    }
-              let paymentMethodId = pmId paymentMethod 
-              pmType paymentMethod `shouldBe` "card"
-              res <- forceSuccess $ attachPaymentMethod cli paymentMethodId (Just customerId)
-              pmId res `shouldBe` paymentMethodId
-              pmCard res
-                `shouldBe` Card
-                    { cExpMonth = 12
-                    , cExpYear = 2023
-                    , cLast4 = "4242"                 
-                    }
          it "list payment methods" $ \(cli, sw) ->
            do
-             let customerId = cId (swCustomer sw)
-             paymentMethods <- forceSuccess $ listPaymentMethods cli (Just customerId) (Just "card")
+             -- An existing customer with a PaymentMehod attached needs to exist
+             paymentMethod <- T.pack <$> getEnv "STRIPE_PMID"
+             customer <- T.pack <$> getEnv "STRIPE_CMID"
+             let cmId' = CustomerId customer
+                 pmId' = PaymentMethodId paymentMethod
+             paymentMethods <- forceSuccess $ listPaymentMethods cli (Just cmId') (Just "card")
              let paymentMethodId = pmId (V.head (slData paymentMethods))
-             pmType (V.head (slData paymentMethods)) `shouldBe` "card"
+                 cardType = pmType (V.head (slData paymentMethods))
+             cardType `shouldBe` "card"
+             paymentMethodId `shouldBe` pmId'

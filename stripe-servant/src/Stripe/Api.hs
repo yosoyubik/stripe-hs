@@ -40,7 +40,7 @@ type ProductApi
 type PriceApi
   = StripeAuth :> ReqBody '[FormUrlEncoded] PriceCreate :> Post '[JSON] Price
   :<|> StripeAuth :> Capture ":product_id" PriceId :> Get '[JSON] Price
-  :<|> StripeAuth :> QueryParam "lookup_keys[]" T.Text :> Get '[JSON] (StripeList Price)
+  :<|> StripeAuth :> QueryParam "product" T.Text :> Get '[JSON] (StripeList Price)
 
 type InvoiceApi =
   StripeAuth :> Capture ":invoice_id" InvoiceId :> Get '[JSON] Invoice

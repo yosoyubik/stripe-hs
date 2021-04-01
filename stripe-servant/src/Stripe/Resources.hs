@@ -457,4 +457,5 @@ instance ToForm CheckoutSessionCreate where
        , ("allow_promotion_codes", maybeToList $ toUrlPiece <$> cscAllowPromotionCodes csc)
        , ("client_reference_id", maybeToList $ cscClientReferenceId csc)
        , ("customer", maybeToList $ fmap toUrlPiece $ cscCustomer csc)
+       , ("allow_promotion_codes", maybeToList $ toUrlPiece <$> cscAllowPromotionCodes csc)
        ] <> lineItems <> pmt

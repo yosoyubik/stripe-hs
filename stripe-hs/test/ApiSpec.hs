@@ -172,6 +172,8 @@ apiWorldTests =
                csCancelUrl session `shouldBe` "https://athiemann.net/cancel"
                csSuccessUrl session `shouldBe` "https://athiemann.net/success"
                csPaymentMethodTypes session `shouldBe` V.singleton "card"
+               csAllowPromotionCodes session `shouldBe` Just True
+
                sessionRetrieved <-
                  forceSuccess $
                  retrieveCheckoutSession cli (csId session)

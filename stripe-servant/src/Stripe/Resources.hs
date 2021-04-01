@@ -14,7 +14,7 @@ module Stripe.Resources
     -- * Payment Method
   , PaymentMethodId(..), PaymentMethod(..)
     -- * Payment Intent
-  , PaymentIntent(..), PaymentIntentOrId(..)
+  , PaymentIntent(..), PaymentIntentId(..), PaymentIntentOrId(..)
     -- * Card
   , Card(..)
     -- * Subscriptions

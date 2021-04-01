@@ -27,6 +27,8 @@ module Stripe.Resources
   , CheckoutSessionId(..), CheckoutSession(..), CheckoutSessionCreate(..), CheckoutSessionCreateLineItem(..)
     -- * Events
   , EventId(..), Event(..), EventData(..)
+    -- * BillingDetails
+  , BillingDetails(..)
   )
 where
 

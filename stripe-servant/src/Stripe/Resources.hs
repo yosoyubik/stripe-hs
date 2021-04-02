@@ -322,6 +322,7 @@ data CheckoutSession
   , csPaymentMethodTypes :: V.Vector T.Text  -- TODO: make enum
   , csSubscription :: Maybe SubscriptionId
   , csAllowPromotionCodes :: Maybe Bool
+  , csPaymentStatus :: T.Text
   } deriving (Show, Eq)
 
 data CheckoutSessionCreate
